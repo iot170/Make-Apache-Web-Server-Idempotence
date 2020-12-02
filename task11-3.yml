@@ -1,0 +1,68 @@
+- hosts: all
+  vars_files:
+    - web-var.yml
+     
+  tasks:        
+    - name: "This is task fro create dir for mount"
+      file:
+        path: "{{ dvd_dir }}"
+        state: directory
+   
+    - mount:
+        path: "{{ dvd_dir }}"
+        src: "/dev/cdrom"
+        fstype: "iso9660"
+        state: mounted    
+    
+    - yum_repository:
+        baseurl: "file://{{ dvd_dir }}/AppStream" 
+        name: "dvd1"
+        description: "This is AppStream Repo"
+        gpgcheck: no
+            
+    - yum_repository:
+        baseurl: "file://{{ dvd_dir  }}/BaseOS" 
+        name: "dvd2"
+        description: "This is BaseOS Repo"
+        gpgcheck: no
+    
+    - package:
+        name: "httpd"
+        state: present
+    
+    - name: "This is for document root"
+      file:
+        state: directory
+        path: "{{ doc_root }}"
+    
+    - template:
+        src: "umesh.conf"
+        dest: "/etc/httpd/conf.d/umesh.conf"
+      notify:
+      - Restart apache       
+
+    - copy:
+        src: "index.html"
+        dest: "{{ doc_root }}/index.html"
+
+    - service:
+        name: "httpd"
+        state: started
+        enabled: yes
+
+    - firewalld:
+        port: "{{ http_port }}/tcp"
+        state: enabled
+        immediate: yes
+        permanent: yes
+    
+  handlers:
+    - name: Restart apache
+      service:
+        name: "httpd"
+        state: restarted
+
+
+
+
+       
